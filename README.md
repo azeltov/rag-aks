@@ -1,8 +1,5 @@
 # Deploy RAG application using NVIDIA NIMs and NeMo Retriever on Azure Kubernetes Service
 
-
-
-
   * [Diagram](#step1)
   * [Introduction](#step2)
   * [What you will learn](#step3)
