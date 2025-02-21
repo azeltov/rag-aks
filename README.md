@@ -68,8 +68,7 @@ accurate responses.
 
 ### **NVIDIA AI Enterprise**
 
-[NVIDIA AI Enterprise](https://www.nvidia.com/en-us/data-center/products/ai-
-enterprise/) is an end-to-end, cloud-native software platform that accelerates
+[NVIDIA AI Enterprise](https://www.nvidia.com/en-us/data-center/products/ai-enterprise/) is an end-to-end, cloud-native software platform that accelerates
 data science pipelines and streamlines development and deployment of
 production-grade co-pilots and other generative AI applications. Available
 through [Azure
