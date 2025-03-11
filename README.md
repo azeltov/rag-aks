@@ -1,19 +1,20 @@
 # Deploy RAG application using NVIDIA NIMs and NeMo Retriever on Azure Kubernetes Service
 
-  * [Diagram](#step1)
-  * [Introduction](#step2)
-  * [What you will learn](#step3)
-  * [Learn the Components](#step4)
-  * [Setup and Requirements](#step5)
-  * [Task 1. Infrastructure Deployment](#step6)
-  * [Task 2. Configure NVIDIA NGC API Key](#step7)
-  * [Task 3. Deploying NVIDIA NIM](#step8)
-  * [Task 4. Deploying NeMo Retriever Embedding Microservice](#step9)
-  * [Task 5. Deploying NeMo Retriever Ranking Microservice](#step10)
-  * [Task 5. Deploying Milvus](#step11)
-  * [Task 6. Deploying Chain Server & RAG Playground](#step12)
-  * [Task 7. Access the RAG Playground Frontend Service](#step13)
-  * [Congratulations!](#step14)
+  * Diagram
+  * Introduction
+  * What you will learn
+  * Learn the Components
+  * Setup and Requirements
+  * Task 1. Infrastructure Deployment
+  * Task 2a. Configure NVIDIA NGC API Key
+  * Task 2b. Install Nvidia GPU Operator
+  * Task 3. Deploying NVIDIA NIM
+  * Task 4. Deploying NeMo Retriever Embedding Microservice
+  * Task 5. Deploying NeMo Retriever Ranking Microservice
+  * Task 5. Deploying Milvus
+  * Task 6. Deploying Chain Server & RAG Playground
+  * Task 7. Access the RAG Playground Frontend Service
+  * Congratulations!
 
 ## Diagram
 ![nim rag blueprint](imgs/architecture_diagram.png)
