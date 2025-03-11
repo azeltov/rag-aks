@@ -198,7 +198,7 @@ CURRENT   NAME     CLUSTER   AUTHINFO                                NAMESPACE
 
 Refer to azure pricing calculator for VM cost: [azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator/?ef_id=_k_EAIaIQobChMIpL_K6YjViwMVTEn_AR2cHgc7EAAYASAAEgIcO_D_BwE_k_&OCID=AIDcmm5edswduu_SEM__k_EAIaIQobChMIpL_K6YjViwMVTEn_AR2cHgc7EAAYASAAEgIcO_D_BwE_k_&gad_source=1&gclid=EAIaIQobChMIpL_K6YjViwMVTEn_AR2cHgc7EAAYASAAEgIcO_D_BwE)
 
-## Task 2. Configure NVIDIA NGC API Key
+## Task 2a. Configure NVIDIA NGC API Key
 
 The first step in the pipeline is to deploy an inference NIM - this will be
 used to host the LLM that will be responsible for generating responses for a
@@ -210,6 +210,25 @@ used an environment variable:
     
 ```    
 export NGC_CLI_API_KEY="<YOUR NGC API KEY>"
+```
+
+## Task 2b. Install Nvidia GPU Operator
+
+https://learn.microsoft.com/en-us/azure/aks/gpu-cluster?tabs=add-ubuntu-gpu-node-pool
+
+* Add the NVIDIA Helm repository:
+
+``` 
+helm repo add nvidia https://helm.ngc.nvidia.com/nvidia --pass-credentials && helm repo update
+``` 
+* Install the GPU Operator:
+``` 
+helm install --create-namespace --namespace gpu-operator nvidia/gpu-operator --wait --generate-name
+```
+
+* Validate install:
+```
+kubectl get pods -A -o wide
 ```
 
 
