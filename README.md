@@ -11,9 +11,9 @@
   * Task 3. Deploying NVIDIA NIM
   * Task 4. Deploying NeMo Retriever Embedding Microservice
   * Task 5. Deploying NeMo Retriever Ranking Microservice
-  * Task 5. Deploying Milvus
-  * Task 6. Deploying Chain Server & RAG Playground
-  * Task 7. Access the RAG Playground Frontend Service
+  * Task 6. Deploying Milvus
+  * Task 7. Deploying Chain Server & RAG Playground
+  * Task 8. Access the RAG Playground Frontend Service
   * Congratulations!
 
 ## Diagram
@@ -446,20 +446,18 @@ The NeMo Retriever microservice can be installed via Helm. As a starting point
 we can fetch the Helm chart, assuming we still leverage the NGC API Key we
 configured earlier:
 
-        ```
-    
-        helm fetch https://helm.ngc.nvidia.com/nim/nvidia/charts/text-reranking-nim-1.3.0.tgz --username='$oauthtoken'     --password=$NGC_CLI_API_KEY
-        ```
+```
+helm fetch https://helm.ngc.nvidia.com/nim/nvidia/charts/text-reranking-nim-1.3.0.tgz --username='$oauthtoken'     --password=$NGC_CLI_API_KEY
+```
 
   2. Configure secrets
 
 We need to configure the secrets we’ll need to pull all the model artifacts
 directly from NGC. This can be done using your NGC API key:
 
-        ```
-    
-        kubectl create secret -n nrem docker-registry ngc-secret --docker-server=nvcr.io --docker-username='$oauthtoken'     --docker-password=$NGC_CLI_API_KEY
-        ```
+```
+kubectl create secret -n nrem docker-registry ngc-secret --docker-server=nvcr.io --docker-username='$oauthtoken'     --docker-password=$NGC_CLI_API_KEY
+```
 
   3. Install the Helm Chart for Nemo Retriever Ranking Microservice
 
