@@ -147,17 +147,17 @@ ssh-keygen -t rsa -b 4096 -C "yourid@companyname.com"
 
   2. Specify the following parameters
 
-```
-    export REGION=westeurope
-    export RESOURCE_GROUP=rg-aks-rag
-    export ZONE=2
-    export CLUSTER_NAME=aksrag
-
-```
+  ```
+  export REGION=westeurope
+  export RESOURCE_GROUP=rg-aks-rag
+  export ZONE=2
+  export CLUSTER_NAME=aksrag
+  export CPU_COUNT=1
+  ```
 Create Azure Resource Group for this Lab
-```
-    az group create -l $REGION -n $RESOURCE_GROUP
-```
+  ```
+  az group create -l $REGION -n $RESOURCE_GROUP
+  ```
 
 
   3. Create AKS Cluster
@@ -168,8 +168,7 @@ az aks create -g  $RESOURCE_GROUP -n $CLUSTER_NAME --location $REGION --zones $Z
 Get Credentials:
 
 ```
-az aks get-credentials --resource-group $RESOURCE_GROUP -name $CLUSTER_NAME
-
+az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME
 ```
 
 ```
@@ -186,15 +185,15 @@ CURRENT   NAME     CLUSTER   AUTHINFO                                NAMESPACE
 
 * 3 or 4 vm nodes of standard_nc24ads_a100_v4 ( standard_nc24ads_a100_v4 has 1 gpu)
 
-        ```
-        az aks nodepool add --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --name gpupool --node-count 3 --skip-gpu-driver-install --node-vm-size standard_nc24ads_a100_v4 --node-osdisk-size 2048 --max-pods 110
-        ```
+        
+      az aks nodepool add --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --name gpupool --node-count 3 --skip-gpu-driver-install --node-vm-size standard_nc24ads_a100_v4 --node-osdisk-size 2048 --max-pods 110
+        
 
 * 1 vm node of standard_nc96ads_a100_v4 ( standard_nc96ads_a100_v4 has 4 gpus) 
 
-        ```
-        az aks nodepool add --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --name gpupool --node-count 1 --skip-gpu-driver-install --node-vm-size standard_nc96ads_a100_v4 --node-osdisk-size 2048 --max-pods 110
-        ```
+        
+      az aks nodepool add --resource-group $RESOURCE_GROUP --cluster-name $CLUSTER_NAME --name gpupool --node-count 1 --skip-gpu-driver-install --node-vm-size standard_nc96ads_a100_v4 --node-osdisk-size 2048 --max-pods 110
+        
 
 
 Refer to azure pricing calculator for VM cost: [azure pricing calculator](https://azure.microsoft.com/en-us/pricing/calculator/?ef_id=_k_EAIaIQobChMIpL_K6YjViwMVTEn_AR2cHgc7EAAYASAAEgIcO_D_BwE_k_&OCID=AIDcmm5edswduu_SEM__k_EAIaIQobChMIpL_K6YjViwMVTEn_AR2cHgc7EAAYASAAEgIcO_D_BwE_k_&gad_source=1&gclid=EAIaIQobChMIpL_K6YjViwMVTEn_AR2cHgc7EAAYASAAEgIcO_D_BwE)
@@ -215,7 +214,7 @@ export NGC_CLI_API_KEY="<YOUR NGC API KEY>"
 
 ## Task 2b. Install Nvidia GPU Operator
 
-https://learn.microsoft.com/en-us/azure/aks/gpu-cluster?tabs=add-ubuntu-gpu-node-pool
+Once your ASK cluster is configured with a GPU-enabled node pool, we can proceed with setting up the NVIDIA GPU Operator. This operator automates the deployment and lifecycle of all NVIDIA software components required to provision GPUs in the Kubernetes cluster. The NVIDIA GPU operator enables the infrastructure to support GPU workloads like LLM inference and embedding generation.
 
 * Add the NVIDIA Helm repository:
 
@@ -232,61 +231,81 @@ helm install --create-namespace --namespace gpu-operator nvidia/gpu-operator --w
 kubectl get pods -A -o wide
 ```
 
+You should see output similar to the example below. Note that this is not the complete output, there should be additional pods running. The most important thing is to verify that the GPU Operator pods are in a `Running` state.
+
+```
+NAMESPACE     NAME                                                          READY   STATUS    RESTARTS   AGE   IP             NODE
+gpu-operator  gpu-operator-xxxx-node-feature-discovery-gc-xxxxxxxxx         1/1     Running   0          40s   10.244.0.194   aks-nodepool1-xxxx
+gpu-operator  gpu-operator-xxxx-node-feature-discovery-master-xxxxxxxxx     1/1     Running   0          40s   10.244.0.200   aks-nodepool1-xxxx
+gpu-operator  gpu-operator-xxxx-node-feature-discovery-worker-xxxxxxxxx     1/1     Running   0          40s   10.244.0.190   aks-nodepool1-xxxx
+gpu-operator  gpu-operator-xxxxxxxxxxxxxx                                   1/1     Running   0          40s   10.244.0.128   aks-nodepool1-xxxx
+```
+
+For additional guidance on setting up GPU node pools in AKS, refer to the [Microsoft Docs](https://learn.microsoft.com/en-us/azure/aks/gpu-cluster?tabs=add-ubuntu-gpu-node-pool).
+
 
 ## Task 3. Deploying NVIDIA NIM
 
   1. Open **Cloud Shell**
 
-  2. Fetch NIM LLM Helm Chart Once we’ve set the NGC API key, we’ll need to fetch the NIM LLM Helm chart from NGC:   
+  2. Fetch the NIM LLM Helm chart  
+    Now that we've configured the NGC API key, we can download the NIM LLM Helm chart from NGC using the following command:
 
         ```
-        helm fetch https://helm.ngc.nvidia.com/nim/charts/nim-llm-1.1.2.tgz
-        --username='$oauthtoken' --password=$NGC_CLI_API_KEY
+        helm fetch https://helm.ngc.nvidia.com/nim/charts/nim-llm-1.1.2.tgz --username='$oauthtoken' --password=$NGC_CLI_API_KEY
         ```
+        
 
-  3. Create a NIM Namespace Namespaces are used to manage resources for a specific service or set of services in kubernetes. It’s best practice to ensure all the resources for a given service are managed in its corresponding namespace. We will set up the namespaces for the other corresponding services in later steps, but we create a namespace for our NIM service using the following kubectl command:
+  3. Create a NIM Namespace  
+    Namespaces are used to manage resources for a specific service or set of services in kubernetes. It’s best practice to ensure all the resources for a given service are managed in its corresponding namespace. We will set up the namespaces for the other corresponding services in later steps, but we create a namespace for our NIM service using the following kubectl command:
 
-        ```    
-        # create namespace
-        kubectl create namespace nim
-        ```
+      ```
+      # create namespace
+      kubectl create namespace nim
+      ```
+        
 
-  4. Configure secrets In order to configure and launch an NVIDIA NIM, it is important to configure the secrets we’ll need to pull all the model artifacts directly from NGC. This can be done using your NGC API key:
+  4. Configure secrets  
+    In order to configure and launch an NVIDIA NIM, it is important to configure the secrets we’ll need to pull all the model artifacts directly from NGC. This can be done using your NGC API key:
 
-        ```    
-        kubectl create secret docker-registry registry-secret --docker-server=nvcr.io --docker-username='$oauthtoken'     --docker-password=$NGC_CLI_API_KEY -n nim
+      ```
+      kubectl create secret docker-registry registry-secret --docker-server=nvcr.io --docker-username='$oauthtoken'     --docker-password=$NGC_CLI_API_KEY -n nim
+      kubectl create secret generic ngc-api --from-literal=NGC_API_KEY=$NGC_CLI_API_KEY -n nim
+      ```
+            
 
-        kubectl create secret generic ngc-api --from-literal=NGC_API_KEY=$NGC_CLI_API_KEY -n nim
-        ```    
-
-  5. Setup NIM Configuration We deploy the LLama 3 8B instruct NIM for this exercise. In order to configure our NIM, we create a custom value file where we configure the deployment:
-```    
-# create nim_custom_value.yaml manifest
-cat <<EOF > nim_custom_value.yaml
-image:
-  repository: "nvcr.io/nim/meta/llama3-8b-instruct" # container location
-  tag: 1.0.0 # NIM version you want to deploy
-model:
-  ngcAPISecret: ngc-api  # name of a secret in the cluster that includes a key named NGC_CLI_API_KEY and is an NGC API key
-persistence:
-  enabled: true
-imagePullSecrets:
-  - name: registry-secret # name of a secret used to pull nvcr.io images, see https://kubernetes.io/docs/tasks/    configure-pod-container/pull-image-private-registry/
-EOF
-```    
+5. Setup NIM Configuration  
+  We deploy the LLama 3 8B instruct NIM for this exercise. In order to configure our NIM, we create a custom value file where we configure the deployment:
+    ```    
+    # create nim_custom_value.yaml manifest
+    cat <<EOF > nim_custom_value.yaml
+    image:
+      repository: "nvcr.io/nim/meta/llama3-8b-instruct" # container location
+      tag: 1.0.0 # NIM version you want to deploy
+    model:
+      ngcAPISecret: ngc-api  # name of a secret in the cluster that includes a key named NGC_CLI_API_KEY and is an NGC API key
+    persistence:
+      enabled: true
+    imagePullSecrets:
+      - name: registry-secret # name of a secret used to pull nvcr.io images, see https://kubernetes.io/docs/tasks/    configure-pod-container/pull-image-private-registry/
+    EOF
+    ```    
 
 
-  6. Launching NIM deployment Now we can deploy our NIM microservice to the namespace we created:
-        ```     
-        helm install my-nim nim-llm-1.1.2.tgz -f nim_custom_value.yaml --namespace nim
-        ``` 
+6. Launching NIM deployment  
+    Now we can deploy our NIM microservice to the namespace we created:
 
-        Verify NIM pod is running:
+    ```     
+    helm install my-nim nim-llm-1.1.2.tgz -f nim_custom_value.yaml --namespace nim
+    ``` 
 
-        ``` 
-        kubectl get pods -n nim
-        ``` 
-  7. Testing NIM deployment Once we’ve verified that our NIM service was deployed successfully. We can make inference requests to see what type of feedback we’ll receive from the NIM service. In order to do this, we enable port forwarding on the service to be able to access the NIM from our localhost on port 8000:
+    Verify NIM pod is running:
+
+    ``` 
+    kubectl get pods -n nim
+    ``` 
+  7. Testing NIM deployment  
+    Once we’ve verified that our NIM service was deployed successfully. We can make inference requests to see what type of feedback we’ll receive from the NIM service. In order to do this, we enable port forwarding on the service to be able to access the NIM from our localhost on port 8000:
     
 
         ``` 
@@ -296,28 +315,28 @@ EOF
         following request:
 
         ```     
-            curl -X 'POST' \
-            'http://localhost:8000/v1/chat/completions' \
-            -H 'accept: application/json' \
-            -H 'Content-Type: application/json' \
-            -d '{
-            "messages": [
-                {
-                "content": "You are a polite and respectful chatbot helping people plan a vacation.",
-                "role": "system"
-                },
-                {
-                "content": "What should I do for a 4 day vacation in Spain?",
-                "role": "user"
-                }
-            ],
-            "model": "meta/llama3-8b-instruct",
-            "max_tokens": 512,
-            "top_p": 1,
-            "n": 1,
-            "stream": false,
-            "frequency_penalty": 0.0
-            }'
+        curl -X 'POST' \
+        'http://localhost:8000/v1/chat/completions' \
+        -H 'accept: application/json' \
+        -H 'Content-Type: application/json' \
+        -d '{
+        "messages": [
+            {
+            "content": "You are a polite and respectful chatbot helping people plan a vacation.",
+            "role": "system"
+            },
+            {
+            "content": "What should I do for a 4 day vacation in Spain?",
+            "role": "user"
+            }
+        ],
+        "model": "meta/llama3-8b-instruct",
+        "max_tokens": 512,
+        "top_p": 1,
+        "n": 1,
+        "stream": false,
+        "frequency_penalty": 0.0
+        }'
         ``` 
 
 
@@ -328,7 +347,8 @@ EOF
 
 ## Task 4. Deploying NeMo Retriever Embedding Microservice
 
-  1. Fetch NeMo Retriever Embedding Helm Chart The NeMo Retriever microservice can be installed via Helm. As a starting point we can fetch the Helm chart, assuming we still leverage the NGC API Key we configured earlier:
+  1. Fetch NeMo Retriever Embedding Helm Chart  
+  The NeMo Retriever microservice can be installed via Helm. As a starting point we can fetch the Helm chart, assuming we still leverage the NGC API Key we configured earlier:
         ```
         helm fetch https://helm.ngc.nvidia.com/nim/nvidia/charts/text-embedding-nim-1.2.0.tgz --username='$oauthtoken'     --password=$NGC_CLI_API_KEY
         ```
@@ -337,49 +357,54 @@ EOF
 
 
 
-  2. Create NeMo Retriever Namespace We create the NeMo Retriever namespace to manage all the kubernetes related resource for the microservice:
+  2. Create NeMo Retriever Namespace  
+  We create the NeMo Retriever namespace to manage all the kubernetes related resource for the microservice:
         ```   
         kubectl create namespace nrem
         ```
 
-  3. Creating Secrets We need to configure image pull secrets and NGC secrets to enable the pulling of model artifacts from NGC and the NVCR registry. In the next following steps, we configure these secrets using the API key we set as a prerequisite:
+  3. Creating Secrets  
+  We need to configure image pull secrets and NGC secrets to enable the pulling of model artifacts from NGC and the NVCR registry. In the next following steps, we configure these secrets using the API key we set as a prerequisite:
     
         ```    
-            DOCKER_CONFIG='{"auths":{"nvcr.io":{"username":"$oauthtoken", "password":"'${NGC_CLI_API_KEY}'" }}}'
-            echo -n $DOCKER_CONFIG | base64 -w0
-            NGC_REGISTRY_PASSWORD=$(echo -n $DOCKER_CONFIG | base64 -w0 )
-            
-            # build imagepull.yaml file
-            cat <<EOF > imagepull.yaml
-            apiVersion: v1
-            kind: Secret
-            metadata:
-            name: nvcrimagepullsecret
-            type: kubernetes.io/dockerconfigjson
-            data:
-            .dockerconfigjson: ${NGC_REGISTRY_PASSWORD}
-            EOF
-            
-            # build ngc cli api secrets manifest
-            cat <<EOF > ngc-cli.yaml
-            apiVersion: v1
-            kind: Secret
-            metadata:
-            name: ngc-api
-            type: Opaque
-            data:
-            NGC_API_KEY: $(echo -n $NGC_CLI_API_KEY | base64 -w0 )
-            EOF
-            
-            # apply manifests and create secrets 
-            kubectl apply -n nrem -f imagepull.yaml
-            kubectl apply -n nrem -f ngc-cli.yaml
-
+        DOCKER_CONFIG='{"auths":{"nvcr.io":{"username":"$oauthtoken", "password":"'${NGC_CLI_API_KEY}'" }}}'
+        echo -n $DOCKER_CONFIG | base64 -w0
+        NGC_REGISTRY_PASSWORD=$(echo -n $DOCKER_CONFIG | base64 -w0 )
+        ```
+        ``` 
+        # build imagepull.yaml file
+        cat <<EOF > imagepull.yaml
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: nvcrimagepullsecret
+        type: kubernetes.io/dockerconfigjson
+        data:
+          .dockerconfigjson: ${NGC_REGISTRY_PASSWORD}
+        EOF
+        ```
+        ``` 
+        # build ngc cli api secrets manifest
+        cat <<EOF > ngc-cli.yaml
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: ngc-api
+        type: Opaque
+        data:
+          NGC_API_KEY: $(echo -n $NGC_CLI_API_KEY | base64 -w0 )
+        EOF
+        ```
+        ``` 
+        # apply manifests and create secrets 
+        kubectl apply -n nrem -f imagepull.yaml
+        kubectl apply -n nrem -f ngc-cli.yaml
         ```
 
 
 
-  4. Install the Helm Chart for Nemo Retriever Embedding Microservice Now that we’ve configured the secrets we need to pull artifacts from NGC, we can deploy the NeMo retriever microservice via Helm. In this case, we deploy the service using the NVIDIA Retrieval QA E5 Embedding v5 NIM:
+  4. Install the Helm Chart for Nemo Retriever  
+  Embedding Microservice Now that we’ve configured the secrets we need to pull artifacts from NGC, we can deploy the NeMo retriever microservice via Helm. In this case, we deploy the service using the NVIDIA Retrieval QA E5 Embedding v5 NIM:
         ```    
         helm upgrade --install \
         --namespace nrem \
@@ -387,7 +412,6 @@ EOF
         --set image.tag=1.1.0 \
         nemo-embedder \
         text-embedding-nim-1.2.0.tgz
-
         ```
 
 Ensure all of the pods are in a running state:
@@ -531,13 +555,12 @@ using the embedding NIM and contents semantically similar will be retrieved
 and injected as context into the inference NIM to improve the quality of the
 generated output.
 
-  1. **Create the Milvus Namespace**
-
-In order to get started with the Milvus service, we create a namespace that
-will be used to manage resources specific to the microservice:
-
-    
-        kubectl create namespace vectorstore
+  1. **Create the Milvus Namespace**  
+  In order to get started with the Milvus service, we create a namespace that
+  will be used to manage resources specific to the microservice:
+      ```
+      kubectl create namespace vectorstore
+      ```
 
 
 
@@ -547,20 +570,17 @@ The Milvus microservice can be installed and managed via Helm charts. We can
 add the Helm repo by running the following:
 
     
-        helm repo add milvus https://zilliztech.github.io/milvus-helm/
+    helm repo add milvus https://zilliztech.github.io/milvus-helm/
 
 
 
 And then updating the repository:
 
     
-        helm repo update
+    helm repo update
 
 
-
-helm repo update
-
-  3. ** Optional!!! Create Custom File to Utilize GPUs**
+  3. **Optional!!! Create Custom File to Utilize GPUs**
 
 In order to leverage the Milvus microservice, we'll need to ensure that we
 have access to at least one GPU resource. We can configure a file with custom
@@ -584,11 +604,11 @@ created in the previous section:
 
 If Milvus is GPU enabled:
 
-        helm install milvus milvus/milvus --set cluster.enabled=false --set etcd.replicaCount=1 --set minio.mode=standalone --set     pulsar.enabled=false -f milvus_custom_value.yaml -n vectorstore
+    helm install milvus milvus/milvus --set cluster.enabled=false --set etcd.replicaCount=1 --set minio.mode=standalone --set     pulsar.enabled=false -f milvus_custom_value.yaml -n vectorstore
 
 Otherwise: 
 
-        helm install milvus milvus/milvus --set cluster.enabled=false --set etcd.replicaCount=1 --set minio.mode=standalone --set     pulsar.enabled=false  -n vectorstore
+    helm install milvus milvus/milvus --set cluster.enabled=false --set etcd.replicaCount=1 --set minio.mode=standalone --set     pulsar.enabled=false  -n vectorstore
 
 
 
@@ -596,7 +616,7 @@ We can check the status of the pods, which should all be **up and running** in
 a **Ready** state within a couple of minutes:
 
     
-        kubectl get pods -n vectorstore
+    kubectl get pods -n vectorstore
 
 
 
@@ -620,8 +640,7 @@ We can create a namespace for the chain server and RAG playground using the
 following command:
 
     
-        kubectl create namespace canonical-rag-langchain
-
+    kubectl create namespace canonical-rag-langchain
 
 
   2. **Installing the Helm Pipeline**
@@ -721,11 +740,6 @@ following command:
         kubectl get svc -n canonical-rag-langchain
 
 
-
-
-
-kubectl get svc -n canonical-rag-langchain
-
   2. **Accessing the Frontend Service**
 
 In order to access the `NodePort` service, we need to configure a firewall
@@ -734,21 +748,14 @@ find the node port our applications are exposed on.
 We can do this using the following command:
 
     
-        kubectl get service rag-playground --output yaml -n canonical-rag-langchain
+    kubectl get service rag-playground --output yaml -n canonical-rag-langchain
 
 
-
-
-
-kubectl get service rag-playground --output yaml -n canonical-rag-langchain
 
 Output should look like the following:
 
     
 ```
-kubectl get service rag-playground --output yaml -n canonical-rag-langchain
-
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -779,7 +786,6 @@ spec:
     targetPort: http
   selector:
     app.kubernetes.io/name: rag-playground
-
 ```
 
 
@@ -818,12 +824,9 @@ IP address of one of the nodes in the cluster. This can be done using the
 following command:
 
 ```    
-    # get information on nodes in the cluster
-    kubectl get nodes --output wide
-
+# get information on nodes in the cluster
+kubectl get nodes --output wide
 ```
-
-
 
 
 This output should yield information regarding the list of current nodes in
@@ -841,16 +844,15 @@ from the LLM.
 
 ## Congratulations!
 
-Congratulations! You've successfully deployed a RAG text Q&A agent
-microservice on Azure AKS using NVIDIA Inference Microservices. Now you can explore
-enhancing your question-answering system by experimenting with different LLMs,
-fine-tuning the embedding model, or scaling your deployment for increased
-performance and availability.
+Congratulations! You've successfully deployed a RAG text Q&A agent microservice on Azure AKS using NVIDIA Inference Microservices. To validate that the system is working as expected, try uploading your own document and asking questions about its content. As a next step, you can begin exploring improvements like experimenting with different LLMs, fine-tuning the embedding model, or scaling the deployment for increased performance and availability.
+
+![RAG Playground UI Add document](imgs/RAG-ui-add-document.png)
+
+![RAG Playground UI](imgs/RAG-UI.png)
 
 NVIDIA offers NIMs with enterprise support through our Azure Marketplace
 listing, [NVIDIA AI
 Enterprise](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/nvidia.nvidia-ai-enterprise?tab=overview).
-
 
 
 ### Learn More
