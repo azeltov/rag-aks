@@ -546,7 +546,7 @@ following request:
 
 
 
-## Task 5. Deploying Milvus
+## Task 6. Deploying Milvus
 
 The RAG application will leverage Milvus as the vector store - we’ll be
 storing any embeddings generated for retrieval purposes in this vector store.
@@ -629,7 +629,7 @@ Output should look like the following:
     milvus-standalone-9ccf56df4-m4tpm   1/1     Running   3 (4m35s ago)   5m34
 
 
-## Task 6. Deploying Chain Server & RAG Playground
+## Task 7. Deploying Chain Server & RAG Playground
 
 Now that we’ve deployed all the prerequisite services, we can deploy the chain
 server and RAG playground services.
@@ -714,7 +714,7 @@ kubectl logs  chain-server-748bb5c5ff-58cw7 -n canonical-rag-langchain
 ```
 
 
-## Task 7. Access the RAG Playground Frontend Service
+## Task 8. Access the RAG Playground Frontend Service
 
 The RAG Playground service exposes a UI that enables interaction with the end
 to end RAG pipeline. A user submits a prompt or a request and this triggers
@@ -864,22 +864,4 @@ Be sure to check out the following articles for more information:
   * [NVIDIA AI Enterprise](https://console.cloud.Azure.com/marketplace/product/nvidia/nvidia-ai-enterprise-vmi)
   * [NVIDIA NIMs](https://www.nvidia.com/en-us/ai/)
 
-
-
-Lab instructions and tasks
-
-  * [Diagram](#step1)
-  * [Introduction](#step2)
-  * [What you will learn](#step3)
-  * [Learn the Components](#step4)
-  * [Setup and Requirements](#step5)
-  * [Task 1. Infrastructure Deployment](#step6)
-  * [Task 2. Configure NVIDIA NGC API Key](#step7)
-  * [Task 3. Deploying NVIDIA NIM](#step8)
-  * [Task 4. Deploying NeMo Retriever Embedding Microservice](#step9)
-  * [Task 5. Deploying NeMo Retriever Ranking Microservice](#step10)
-  * [Task 5. Deploying Milvus](#step11)
-  * [Task 6. Deploying Chain Server & RAG Playground](#step12)
-  * [Task 7. Access the RAG Playground Frontend Service](#step13)
-  * [Congratulations!](#step14)
 
